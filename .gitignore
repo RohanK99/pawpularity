@@ -1,5 +1,7 @@
 # Model Data
 train/
+train.csv
+tb_logs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
