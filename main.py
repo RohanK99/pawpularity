@@ -1,11 +1,13 @@
 from data import *
 from model import Model
 
+import glob
 import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 
 from pytorch_lightning import callbacks
 from tensorboard.backend.event_processing import event_accumulator
+from sklearn.model_selection import StratifiedKFold
 
 # dataloader = PawpularityDataModule().train_dataloader()
 # images, labels = next(iter(dataloader))
@@ -19,30 +21,52 @@ from tensorboard.backend.event_processing import event_accumulator
 
 # plt.show()
 
-datamodule = PawpularityDataModule()
-model = Model()
+# config options
+log_folder = "tb_logs"
+experiment_name="kfold-swinv1"
+version_num = "version_0"
+num_splits = 5
 
-logger = pl.loggers.TensorBoardLogger("tb_logs", "trash", default_hp_metric=False)
-early_stopping_cb = callbacks.EarlyStopping(monitor="val_rmse")
-model_cb = callbacks.ModelCheckpoint(
-    filename='{epoch}-{val_loss:.2f}',
-    monitor="val_rmse",
-    save_top_k=1,
-    mode="min",
-    save_last=False,
-)
-trainer = pl.Trainer(
-    logger=logger,
-    max_epochs=2,
-    callbacks=[early_stopping_cb, model_cb],
-    gpus=1,
-)
-trainer.fit(model, datamodule=datamodule)
+# read data
+annotations = pd.read_csv('train.csv')
+imgs = annotations["Id"].to_numpy()
+labels = annotations["Pawpularity"].to_numpy()
 
-# print scalars when we need to calculate cv score
-event_acc = event_accumulator.EventAccumulator('tb_logs/swinv1/version_1')
-event_acc.Reload()
+# train model
+skf = StratifiedKFold(n_splits=num_splits, shuffle=True)
+logger = pl.loggers.TensorBoardLogger(log_folder, experiment_name, default_hp_metric=False)
+for train_idx, val_idx in skf.split(imgs, labels):
+    datamodule = PawpularityDataModule(imgs[train_idx], labels[train_idx], imgs[val_idx], labels[val_idx])
+    model = Model()
 
-tag = "val_rmse"
-for scalar_event in event_acc.Scalars(tag):
-    print(scalar_event.value)
+    early_stopping_cb = callbacks.EarlyStopping(monitor="val_rmse")
+    model_cb = callbacks.ModelCheckpoint(
+        filename='{epoch}-{val_rmse:.2f}',
+        monitor="val_rmse",
+        save_top_k=1,
+        mode="min",
+        save_last=False,
+    )
+    trainer = pl.Trainer(
+        logger=logger,
+        max_epochs=20,
+        callbacks=[early_stopping_cb, model_cb],
+        gpus=1,
+    )
+    trainer.fit(model, datamodule=datamodule)
+
+# calculate cross validation score
+rmse_sum = 0.0
+for event_file in glob.glob(f'{log_folder}/{experiment_name}/{version_num}/events.*'):
+    event_acc = event_accumulator.EventAccumulator(event_file)
+    event_acc.Reload()
+
+    tag = "val_rmse"
+    rmse = []
+    for scalar_event in event_acc.Scalars(tag):
+        rmse.append(scalar_event.value)
+
+    rmse_sum += min(rmse)
+
+cv_score = rmse_sum / num_splits
+print(f'Cross Validation RMSE: {cv_score}')

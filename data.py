@@ -27,12 +27,12 @@ class PawpularityDataset(Dataset):
         return img, label
 
 class PawpularityDataModule(LightningDataModule):
-    def __init__(self):
+    def __init__(self, img_train, label_train, img_val, label_val):
         super().__init__()
-        annotations = pd.read_csv('train.csv')
-        imgs = annotations["Id"].to_numpy()
-        labels = annotations["Pawpularity"].to_numpy()
-        self.img_train, self.img_val, self.label_train, self.label_val = train_test_split(imgs, labels, train_size=0.8)
+        self.img_train = img_train
+        self.label_train = label_train
+        self.img_val = img_val
+        self.label_val= label_val
 
         self.train_transform = transforms.Compose([
             transforms.RandomHorizontalFlip(),
