@@ -17,7 +17,7 @@ class PawpularityDataset(Dataset):
         return len(self.imgs)
 
     def __getitem__(self, index):
-        img_path = os.path.join('train', self.imgs[index] + '.jpg')
+        img_path = os.path.join('train_384', self.imgs[index] + '.jpg')
         img = Image.open(img_path)
         label = self.labels[index] / 100.0
 
@@ -39,21 +39,21 @@ class PawpularityDataModule(LightningDataModule):
             transforms.RandomVerticalFlip(),
             transforms.RandomAffine(15, translate=(0.1, 0.1), scale=(0.9, 1.1)),
             transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1),
-            transforms.Resize([224,224]),
+            transforms.Resize([384,384]),
             transforms.ToTensor(),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
         ])
 
         self.val_transform = transforms.Compose([
-            transforms.Resize([224, 224]),
+            transforms.Resize([384,384]),
             transforms.ToTensor(),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
         ])
 
     def train_dataloader(self):
         dataset = PawpularityDataset(self.img_train, self.label_train, self.train_transform)
-        return DataLoader(dataset, batch_size=32, shuffle=True, num_workers=8)
+        return DataLoader(dataset, batch_size=1, shuffle=True, num_workers=8)
     
     def val_dataloader(self):
         dataset = PawpularityDataset(self.img_val, self.label_val, self.val_transform)
-        return DataLoader(dataset, batch_size=32, shuffle=False, num_workers=8)
+        return DataLoader(dataset, batch_size=1, shuffle=False, num_workers=8)

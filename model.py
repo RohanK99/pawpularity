@@ -8,7 +8,7 @@ import timm
 class Model(LightningModule):
     def __init__(self):
         super().__init__()
-        self.backbone = timm.create_model('swin_tiny_patch4_window7_224', pretrained=True, num_classes=0)
+        self.backbone = timm.create_model('swin_large_patch4_window12_384', pretrained=True, num_classes=0)
         self.fc = nn.Sequential(
             nn.Dropout(0.5),
             nn.LazyLinear(1) # we only want one output feature and then perform sigmoid

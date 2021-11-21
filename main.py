@@ -23,9 +23,12 @@ from sklearn.model_selection import StratifiedKFold
 
 # config options
 log_folder = "tb_logs"
-experiment_name="kfold-swinv1"
+experiment_name="kfold-large-swinv1"
 version_num = "version_0"
 num_splits = 5
+seed = 42
+
+pl.utilities.seed.seed_everything(seed=seed)
 
 # read data
 annotations = pd.read_csv('train.csv')
@@ -33,7 +36,7 @@ imgs = annotations["Id"].to_numpy()
 labels = annotations["Pawpularity"].to_numpy()
 
 # train model
-skf = StratifiedKFold(n_splits=num_splits, shuffle=True)
+skf = StratifiedKFold(n_splits=num_splits, shuffle=True, random_state=seed)
 logger = pl.loggers.TensorBoardLogger(log_folder, experiment_name, default_hp_metric=False)
 for train_idx, val_idx in skf.split(imgs, labels):
     datamodule = PawpularityDataModule(imgs[train_idx], labels[train_idx], imgs[val_idx], labels[val_idx])
