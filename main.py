@@ -55,6 +55,7 @@ for train_idx, val_idx in skf.split(imgs, labels):
         max_epochs=20,
         callbacks=[early_stopping_cb, model_cb],
         gpus=1,
+        val_check_interval=0.125, # check 8x an epoch
     )
     trainer.fit(model, datamodule=datamodule)
 

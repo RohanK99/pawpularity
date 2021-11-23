@@ -52,8 +52,8 @@ class PawpularityDataModule(LightningDataModule):
 
     def train_dataloader(self):
         dataset = PawpularityDataset(self.img_train, self.label_train, self.train_transform)
-        return DataLoader(dataset, batch_size=1, shuffle=True, num_workers=8)
+        return DataLoader(dataset, batch_size=8, shuffle=True, num_workers=8)
     
     def val_dataloader(self):
         dataset = PawpularityDataset(self.img_val, self.label_val, self.val_transform)
-        return DataLoader(dataset, batch_size=1, shuffle=False, num_workers=8)
+        return DataLoader(dataset, batch_size=8, shuffle=False, num_workers=8)
