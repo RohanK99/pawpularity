@@ -55,7 +55,6 @@ for train_idx, val_idx in skf.split(imgs, labels):
         max_epochs=20,
         callbacks=[early_stopping_cb, model_cb],
         gpus=1,
-        val_check_interval=0.125, # check 8x an epoch
     )
     trainer.fit(model, datamodule=datamodule)
 
@@ -70,6 +69,7 @@ for event_file in glob.glob(f'{log_folder}/{experiment_name}/{version_num}/event
     for scalar_event in event_acc.Scalars(tag):
         rmse.append(scalar_event.value)
 
+    print(f"Event file {event_file} has min rmse of {min(rmse)}")
     rmse_sum += min(rmse)
 
 cv_score = rmse_sum / num_splits

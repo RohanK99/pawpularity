@@ -5,9 +5,10 @@ import torchmetrics
 import torch.nn as nn
 import timm
 
+import numpy as np
+
 def mixup(x: torch.Tensor, y: torch.Tensor, alpha: float = 1.0):
     assert alpha > 0, "alpha should be larger than 0"
-    assert x.size(0) > 1, "Mixup cannot be applied to a single instance."
 
     lam = np.random.beta(alpha, alpha)
     rand_index = torch.randperm(x.size()[0])
@@ -18,7 +19,7 @@ def mixup(x: torch.Tensor, y: torch.Tensor, alpha: float = 1.0):
 class Model(LightningModule):
     def __init__(self):
         super().__init__()
-        self.backbone = timm.create_model('swin_large_patch4_window12_384', pretrained=True, num_classes=0)
+        self.backbone = timm.create_model('swin_large_patch4_window7_224', pretrained=True, num_classes=0, in_chans=3)
         self.fc = nn.Sequential(
             nn.Dropout(0.5),
             nn.LazyLinear(1) # we only want one output feature and then perform sigmoid
@@ -28,9 +29,13 @@ class Model(LightningModule):
         self.val_rmse = torchmetrics.MeanSquaredError(squared=False)
 
     def forward(self, x):
-        x = self.backbone(x)
-        x = self.fc(x)
-        return x
+        features = self.backbone(x)
+        x = self.fc(features)
+        return x, features
+
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+        images, labels = batch
+        return self(images)
 
     def training_step(self, batch, batch_idx):
         loss, preds, labels = self.__share_step(batch, 'train')
@@ -47,13 +52,13 @@ class Model(LightningModule):
         images, labels = batch
         
         # mixup
-        if torch.rand(1)[0] < 0.5 and mode == 'train':
+        if torch.rand(1)[0] < 0.5 and mode == 'train' and images.size(0) > 1:
             mix_images, target_a, target_b, lam = mixup(images, labels, alpha=0.5)
-            logits = self.forward(mix_images).squeeze(1)
+            logits = self.forward(mix_images)[0].squeeze(1)
             loss = self.criterion(logits, target_a) * lam + \
                 (1 - lam) * self.criterion(logits, target_b)
         else:
-            logits = self.forward(images).squeeze(1)
+            logits = self.forward(images)[0].squeeze(1)
             loss = self.criterion(logits, labels)
         
         preds = torch.sigmoid(logits).detach().cpu() * 100

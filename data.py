@@ -32,20 +32,21 @@ class PawpularityDataModule(LightningDataModule):
         self.img_train = img_train
         self.label_train = label_train
         self.img_val = img_val
-        self.label_val= label_val
+        self.label_val = label_val
+        self.img_size = 384
 
         self.train_transform = transforms.Compose([
             transforms.RandomHorizontalFlip(),
             transforms.RandomVerticalFlip(),
             transforms.RandomAffine(15, translate=(0.1, 0.1), scale=(0.9, 1.1)),
             transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1),
-            transforms.Resize([384,384]),
+            transforms.Resize([self.img_size,self.img_size]),
             transforms.ToTensor(),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
         ])
 
         self.val_transform = transforms.Compose([
-            transforms.Resize([384,384]),
+            transforms.Resize([self.img_size,self.img_size]),
             transforms.ToTensor(),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
         ])
@@ -56,4 +57,8 @@ class PawpularityDataModule(LightningDataModule):
     
     def val_dataloader(self):
         dataset = PawpularityDataset(self.img_val, self.label_val, self.val_transform)
+        return DataLoader(dataset, batch_size=8, shuffle=False, num_workers=8)
+
+    def predict_dataloader(self):
+        dataset = PawpularityDataset(self.img_train, self.label_train, self.val_transform)
         return DataLoader(dataset, batch_size=8, shuffle=False, num_workers=8)
