@@ -17,7 +17,7 @@ class PawpularityDataset(Dataset):
         return len(self.imgs)
 
     def __getitem__(self, index):
-        img_path = os.path.join('train_384', self.imgs[index] + '.jpg')
+        img_path = os.path.join('/home/docker/pawpularity/train_384', self.imgs[index] + '.jpg')
         img = Image.open(img_path)
         label = self.labels[index] / 100.0
 
@@ -27,13 +27,14 @@ class PawpularityDataset(Dataset):
         return img, label
 
 class PawpularityDataModule(LightningDataModule):
-    def __init__(self, img_train, label_train, img_val, label_val):
+    def __init__(self, img_train, label_train, img_val, label_val, config):
         super().__init__()
         self.img_train = img_train
         self.label_train = label_train
         self.img_val = img_val
         self.label_val = label_val
         self.img_size = 384
+        self.config = config
 
         self.train_transform = transforms.Compose([
             transforms.RandomHorizontalFlip(),
@@ -53,12 +54,12 @@ class PawpularityDataModule(LightningDataModule):
 
     def train_dataloader(self):
         dataset = PawpularityDataset(self.img_train, self.label_train, self.train_transform)
-        return DataLoader(dataset, batch_size=8, shuffle=True, num_workers=8)
+        return DataLoader(dataset, batch_size=self.config["batch_size"], shuffle=True, num_workers=8)
     
     def val_dataloader(self):
         dataset = PawpularityDataset(self.img_val, self.label_val, self.val_transform)
-        return DataLoader(dataset, batch_size=8, shuffle=False, num_workers=8)
+        return DataLoader(dataset, batch_size=self.config["batch_size"], shuffle=False, num_workers=8)
 
     def predict_dataloader(self):
         dataset = PawpularityDataset(self.img_train, self.label_train, self.val_transform)
-        return DataLoader(dataset, batch_size=8, shuffle=False, num_workers=8)
+        return DataLoader(dataset, batch_size=self.config["batch_size"], shuffle=False, num_workers=8)

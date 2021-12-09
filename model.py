@@ -17,9 +17,9 @@ def mixup(x: torch.Tensor, y: torch.Tensor, alpha: float = 1.0):
     return mixed_x, target_a, target_b, lam
 
 class Model(LightningModule):
-    def __init__(self):
+    def __init__(self, hyperparameters):
         super().__init__()
-        self.backbone = timm.create_model('swin_large_patch4_window7_224', pretrained=True, num_classes=0, in_chans=3)
+        self.backbone = timm.create_model('swin_large_patch4_window12_384', pretrained=True, num_classes=0, in_chans=3)
         self.fc = nn.Sequential(
             nn.Dropout(0.5),
             nn.LazyLinear(1) # we only want one output feature and then perform sigmoid
@@ -27,6 +27,7 @@ class Model(LightningModule):
         self.criterion = nn.BCEWithLogitsLoss()
         self.train_rmse = torchmetrics.MeanSquaredError(squared=False)
         self.val_rmse = torchmetrics.MeanSquaredError(squared=False)
+        self.save_hyperparameters()
 
     def forward(self, x):
         features = self.backbone(x)
@@ -66,10 +67,10 @@ class Model(LightningModule):
         return loss, preds, labels
 
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=1e-5)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.hparams.hyperparameters["lr"])
         scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
             optimizer,
-            T_0 = 20,
-            eta_min = 1e-4
+            T_0 = self.hparams.hyperparameters["T_0"],
+            eta_min = self.hparams.hyperparameters["eta_min"]
         )
         return [optimizer], [scheduler]
